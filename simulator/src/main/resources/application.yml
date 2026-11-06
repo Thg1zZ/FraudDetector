@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: simulator
+  main:
+    keep-alive: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      acks: all
+      properties:
+        spring.json.add.type.headers: false
+
+simulator:
+  transactions-per-second: 20
+  cards: 500
+  fraud-rate: 0.01
