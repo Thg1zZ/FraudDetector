@@ -3,10 +3,30 @@ spring:
     name: detector
   main:
     keep-alive: true
+  datasource:
+    url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/fraud}
+    username: ${POSTGRES_USER:fraud}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     admin:
       fail-fast: true
+    consumer:
+      group-id: fraud-alert-persistence
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.value.default.type: dev.thiagogomes.fraud.detector.alert.FraudAlert
+        spring.json.use.type.headers: false
+    listener:
+      ack-mode: record
     streams:
       application-id: fraud-detector
       state-dir: ${KAFKA_STREAMS_STATE_DIR:./.state/detector}
