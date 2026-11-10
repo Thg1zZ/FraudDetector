@@ -54,7 +54,8 @@ class AlertApiIT {
     @Container static final KafkaContainer KAFKA = new KafkaContainer("apache/kafka:4.1.0")
             .withStartupTimeout(Duration.ofMinutes(3));
     @TempDir static Path stateDir;
-    static final Instant BASE = Instant.parse("2026-11-09T12:00:00Z");
+    // Changelogs de janelas têm retenção real; uma data fixa expira entre execuções.
+    static final Instant BASE = Instant.now().minusSeconds(60);
     static final Clock CLOCK = Clock.fixed(BASE.plusSeconds(10), ZoneOffset.UTC);
 
     @DynamicPropertySource
