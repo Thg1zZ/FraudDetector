@@ -52,6 +52,7 @@ application-secrets.*
 ### Documentação e configurações locais dos agentes ###
 *.md
 !/README.md
+!/README.en.md
 /docs/*
 !/docs/images/
 /docs/images/*
