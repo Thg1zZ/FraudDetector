@@ -184,6 +184,8 @@ Validação de **10/11/2026**, em build limpo: **54 testes, zero falhas e zero i
 Os testes de recuperação param o Streams, removem apenas seu estado temporário e verificam a restauração
 pelo changelog antes de completar uma sequência suspeita. Os testes de quarentena inserem mensagens inválidas
 e válidas na **mesma partição**, verificam o conteúdo da DLT e a continuidade do processamento.
+Os testes com broker real usam eventos recentes para respeitar a retenção dos changelogs; os testes
+unitários da topologia usam relógio fixo.
 Os testes HTTP cobrem parâmetros inválidos, injeção tratada como dado, atualização restrita ao status,
 conteúdo incompatível e ausência de liberação CORS para origens externas.
 
