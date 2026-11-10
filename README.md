@@ -1,25 +1,75 @@
-# Fraud Detector
+<div align="center">
 
-**Detecção de fraude em tempo real com Java, Kafka Streams e PostgreSQL.**
+<h1>Fraud Detector</h1>
+<p><strong>Detecção de fraude em tempo real, do evento ao alerta.</strong></p>
+<p>Java 21 · Kafka Streams · PostgreSQL · Prometheus & Grafana</p>
 
-Uma compra entra no Kafka, passa por quatro regras com estado e pode virar um alerta.
+<p><strong>🇧🇷 Português</strong> · <a href="README.en.md">🇺🇸 Read in English</a></p>
+
+<p>
+  <a href="https://github.com/Thg1zZ/FraudDetector/actions/workflows/ci.yml"><img src="https://github.com/Thg1zZ/FraudDetector/actions/workflows/ci.yml/badge.svg?branch=main" alt="Java CI — main"></a>
+  <img src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white" alt="Java 21">
+  <img src="https://img.shields.io/badge/Spring_Boot-4.1.2-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4.1.2">
+  <img src="https://img.shields.io/badge/Kafka_Streams-4.2.2-231F20?logo=apachekafka&logoColor=white" alt="Kafka Streams 4.2.2">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="Licença MIT"></a>
+</p>
+
+<p><a href="#demo">Demo visual</a> · <a href="#architecture">Arquitetura</a> · <a href="#run">Como rodar</a> · <a href="#tests">Testes</a></p>
+
+</div>
+
+---
+
+Uma compra entra no Kafka, passa por **quatro regras com estado** e pode virar um alerta.
 O alerta é persistido e fica disponível para consulta e classificação pela API REST.
-O simulador gera somente dados sintéticos: `cardId` identifica um perfil fictício, sem número de cartão ou dados pessoais.
 
-O projeto demonstra event time, janelas deslizantes, recuperação de estado, persistência idempotente,
-validação nas fronteiras e observabilidade de uma aplicação distribuída.
+O diferencial é demonstrar o caminho completo: **event time e janelas deslizantes → recuperação pelo
+changelog → persistência idempotente → API → observabilidade**, com testes em Kafka e PostgreSQL reais.
+
+> **54 testes** · **94,9% de cobertura de linhas no detector** · **4 regras de detecção** · **licença MIT**
+>
+> Evidências de 10/11/2026. Somente dados sintéticos: `cardId` identifica um perfil fictício,
+> sem número de cartão ou dados pessoais. Demonstração local, sem autenticação.
+
+## Sumário
+
+- [Demo visual](#demo)
+- [Como o fluxo funciona](#flow)
+- [Arquitetura](#architecture)
+- [Regras de detecção](#rules)
+- [API em funcionamento](#api)
+- [Como rodar](#run)
+- [Testes e evidências](#tests)
+- [Segurança e decisões de engenharia](#security)
+- [Observabilidade](#observability)
+- [Limites conhecidos e evolução](#limits)
+- [Licença](#license)
+
+---
+
+<a id="demo"></a>
+
+## Demo visual
 
 ![Dashboard real: transações, alertas por regra, atraso de detecção e memória da JVM](docs/images/dashboard.jpg)
 
 *Captura da demonstração local. Os gráficos mostram tráfego sintético; não representam capacidade máxima de produção.*
 
-## Demonstração
+---
+
+<a id="flow"></a>
+
+## Como o fluxo funciona
 
 1. O simulador publica compras normais e cenários suspeitos, usando `cardId` como chave Kafka.
 2. O detector mantém o histórico de cada cartão e aplica quatro regras.
 3. Os alertas chegam ao PostgreSQL com proteção contra entregas repetidas e concorrentes.
 4. Um analista consulta evidências e classifica os alertas pela API REST.
 5. Prometheus e Grafana acompanham o fluxo. Mensagens inválidas seguem para quarentena.
+
+---
+
+<a id="architecture"></a>
 
 ## Arquitetura
 
@@ -50,7 +100,11 @@ Os módulos são `simulator/` e `detector/`. O detector organiza o código em `t
 `rule`, `alert` e `config`. A API usa DTOs e não expõe entidades JPA. Mensagens JSON não dependem
 de cabeçalhos de classe Java. Os tópicos de negócio e de quarentena têm três partições cada.
 
-## Regras
+---
+
+<a id="rules"></a>
+
+## Regras de detecção
 
 | Regra | Condição padrão | Histórico usado |
 |---|---|---|
@@ -66,6 +120,10 @@ retroativamente o histórico. Eventos com o mesmo horário seguem a ordem de che
 
 Os limites ficam em [`application.yml`](detector/src/main/resources/application.yml) e aceitam overrides
 por ambiente, por exemplo `FRAUD_RULES_VELOCITY_MAX_TRANSACTIONS=8`.
+
+---
+
+<a id="api"></a>
 
 ## API em funcionamento
 
@@ -91,7 +149,11 @@ A listagem retorna `content`, `page`, `size`, `totalElements` e `totalPages`, or
 decrescente e ID como desempate. São permitidos até 100 itens por página e páginas de 0 a 10.000.
 Erros de contrato retornam `400` em Problem Details; recurso inexistente retorna `404`.
 
-## Executar a partir de um clone
+---
+
+<a id="run"></a>
+
+## Como rodar
 
 Pré-requisitos: **JDK 21**, Docker com containers Linux e acesso ao Maven Central/Docker Hub na primeira execução.
 O Maven Wrapper está incluído. No Windows, substitua `bash mvnw` por `.\mvnw.cmd`.
@@ -107,6 +169,9 @@ Não exige `.env`, Compose ou banco previamente criado. Os containers usam porta
 removidos ao final; o banco da demonstração não é utilizado.
 
 ### 2. Subir Kafka e PostgreSQL para a aplicação
+
+<details>
+<summary><strong>Ver comandos de infraestrutura local</strong></summary>
 
 Os comandos abaixo usam Bash. Defina uma senha local na sessão em que iniciará o detector:
 
@@ -137,6 +202,8 @@ docker exec fraud-kafka /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-
 Aguarde os dois últimos comandos concluírem com sucesso. No PowerShell, defina `$env:POSTGRES_PASSWORD`
 antes de iniciar o detector e adapte a continuação de linha dos comandos Docker. As portas 5432 e 9092
 precisam estar livres; use uma única infraestrutura de demonstração por vez.
+
+</details>
 
 ### 3. Iniciar detector e simulador
 
@@ -169,6 +236,10 @@ Abra [Swagger UI](http://localhost:8080/swagger-ui/index.html) ou consulte
 
 Para parar a infraestrutura: `docker stop fraud-kafka fraud-postgres`. O volume do PostgreSQL é preservado.
 O Kafka desse exemplo é temporário; use armazenamento persistente para conservar histórico entre recriações.
+
+---
+
+<a id="tests"></a>
 
 ## Testes e evidências
 
@@ -208,6 +279,10 @@ as ações estão fixadas por commit. [Dependabot](.github/dependabot.yml) acomp
 Os números de cobertura acima vêm da execução local. As execuções remotas e seus relatórios ficam
 na aba [Actions](https://github.com/Thg1zZ/FraudDetector/actions) do repositório.
 
+---
+
+<a id="security"></a>
+
 ## Segurança e decisões de engenharia
 
 Esta é uma **demonstração local sem autenticação**. A API deve permanecer no loopback.
@@ -239,6 +314,10 @@ no consumidor de alertas, a recuperação só termina após confirmação da pub
 Não existe replay automático das DLTs: inspecione a causa, corrija o contrato e faça um replay controlado.
 Uma DLT pode conter dados de negócio e precisa dos mesmos cuidados de acesso/retenção do tópico original.
 
+---
+
+<a id="observability"></a>
+
 ## Observabilidade
 
 ![Kafka UI exibindo os tópicos da aplicação](docs/images/kafka.jpg)
@@ -259,12 +338,16 @@ O datasource do Grafana aponta para o Prometheus. A captura usa Kafka UI, Promet
 em containers locais com provisionamento próprio.
 
 Docker/Compose, dashboards locais, `.env` e configurações de agentes não fazem parte do repositório.
-As instruções acima, o README e as capturas selecionadas são públicos.
+As instruções acima, os READMEs, a licença e as capturas selecionadas são públicos.
 
 O p95 mede **tempo do evento até detecção**, incluindo entrega e backlog; não é tempo de CPU da regra.
 Eventos dentro da tolerância futura têm duração limitada a zero. Contadores medem processamento observado,
 podendo incluir reprocessamentos. Cenários geram mais de uma compra, portanto a taxa efetiva pode ultrapassar
 as 20 escolhas de cenário/s configuradas. Não foi realizado benchmark de saturação.
+
+---
+
+<a id="limits"></a>
 
 ## Limites conhecidos e evolução
 
@@ -275,3 +358,15 @@ as 20 escolhas de cenário/s configuradas. Não foi realizado benchmark de satur
 - As regras são heurísticas; não há modelo treinado, avaliação de precisão/recall ou bloqueio de pagamento.
 - A demonstração usa um broker e replicação 1. Alta disponibilidade, ACLs, TLS e recuperação de desastre exigem outra configuração.
 - Autenticação, auditoria das classificações e autorização por função são os próximos passos para uso multiusuário.
+
+---
+
+<a id="license"></a>
+
+## Licença
+
+Este projeto é distribuído sob a [licença MIT](LICENSE).
+
+Copyright © 2026 [Thiago Gomes](https://github.com/Thg1zZ).
+
+<p align="center"><a href="#fraud-detector">Voltar ao topo ↑</a> · <a href="README.en.md">Read in English →</a></p>
