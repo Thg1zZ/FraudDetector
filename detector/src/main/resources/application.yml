@@ -11,6 +11,9 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+  mvc:
+    problemdetails:
+      enabled: true
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     admin:
@@ -53,3 +56,9 @@ fraud:
       min-transactions: 5
       window: 2m
       grace: 30s
+
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  error:
+    include-stacktrace: never
+    include-message: never

@@ -24,10 +24,14 @@ import org.springframework.util.backoff.FixedBackOff;
 
 import dev.thiagogomes.fraud.detector.stream.FraudTopology;
 import dev.thiagogomes.fraud.detector.alert.FraudAlert;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.info.Info;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
 @EnableKafkaStreams
+@OpenAPIDefinition(info = @Info(title = "Fraud Detector", version = "1.0",
+        description = "Detecção de fraude em tempo real · dados sintéticos · demonstração local"))
 public class DetectorApplication {
 
     public static void main(String[] args) {
