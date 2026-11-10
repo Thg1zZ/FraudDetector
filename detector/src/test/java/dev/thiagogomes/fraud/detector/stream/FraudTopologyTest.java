@@ -27,6 +27,7 @@ import org.springframework.kafka.support.serializer.JacksonJsonSerde;
 import dev.thiagogomes.fraud.detector.alert.FraudAlert;
 import dev.thiagogomes.fraud.detector.config.FraudRulesProperties;
 import dev.thiagogomes.fraud.detector.transaction.Transaction;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 class FraudTopologyTest {
 
@@ -40,6 +41,7 @@ class FraudTopologyTest {
     private TestInputTopic<String, Transaction> input;
     private TestOutputTopic<String, FraudAlert> output;
     private long sequence;
+    private SimpleMeterRegistry meters;
 
     @BeforeEach
     void setUp() {
@@ -48,10 +50,12 @@ class FraudTopologyTest {
 
     private void start(FraudRulesProperties.Velocity velocity) {
         StreamsBuilder builder = new StreamsBuilder();
+        meters = new SimpleMeterRegistry();
         new FraudTopology().fraudAlerts(builder, new FraudRulesProperties(velocity,
                 new FraudRulesProperties.HighAmount(new BigDecimal("5"), 5),
                 new FraudRulesProperties.ImpossibleTravel(900),
-                new FraudRulesProperties.CardTesting(new BigDecimal("5"), 5, Duration.ofMinutes(2), Duration.ofSeconds(30))), CLOCK);
+                new FraudRulesProperties.CardTesting(new BigDecimal("5"), 5, Duration.ofMinutes(2), Duration.ofSeconds(30))), CLOCK,
+                new FraudMetrics(meters));
         Properties config = new Properties();
         config.put(StreamsConfig.APPLICATION_ID_CONFIG, "fraud-topology-test");
         config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "unused:9092");
@@ -80,6 +84,15 @@ class FraudTopologyTest {
         }
 
         assertThat(output.isEmpty()).isTrue();
+    }
+
+    @Test
+    void recordsTransactionsAlertsAndNonNegativeLatency() {
+        for (int i = 0; i < 6; i++) send("card-0042", 172830000 + i * 1000);
+        assertThat(meters.get("fraud.transactions").counter().count()).isEqualTo(6);
+        assertThat(meters.get("fraud.alerts").tag("rule", "VELOCITY").counter().count()).isEqualTo(1);
+        assertThat(meters.get("fraud.detection.latency").timer().count()).isEqualTo(1);
+        assertThat(meters.get("fraud.detection.latency").timer().totalTime(java.util.concurrent.TimeUnit.SECONDS)).isZero();
     }
 
     @Test
@@ -254,6 +267,7 @@ class FraudTopologyTest {
         var rejected = driver.createOutputTopic(FraudTopology.TRANSACTIONS_DLT,
                 Serdes.String().deserializer(), Serdes.ByteArray().deserializer());
         assertThat(rejected.readValuesToList()).hasSize(2);
+        assertThat(meters.get("fraud.transactions").counter().count()).isEqualTo(6);
     }
 
     @Test

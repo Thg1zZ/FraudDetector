@@ -62,3 +62,12 @@ server:
   error:
     include-stacktrace: never
     include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never

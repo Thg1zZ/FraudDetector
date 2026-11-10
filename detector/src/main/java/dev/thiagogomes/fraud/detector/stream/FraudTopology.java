@@ -30,7 +30,7 @@ public class FraudTopology {
 
     @Bean
     public KStream<String, FraudAlert> fraudAlerts(StreamsBuilder builder, FraudRulesProperties properties,
-                                                  Clock clock) {
+                                                  Clock clock, FraudMetrics metrics) {
         var transactionSerde = Serdes.serdeFrom(new JacksonJsonSerializer<Transaction>()
                 .noTypeInfo(), new TransactionDeserializer(clock));
         var alertSerde = new JacksonJsonSerde<>(FraudAlert.class).noTypeInfo().ignoreTypeHeaders();
@@ -41,11 +41,13 @@ public class FraudTopology {
         transactions = transactions.filter((key, value) -> value != null);
         transactions.filter((key, value) -> !value.cardId().equals(key))
                 .to(TRANSACTIONS_DLT, Produced.with(Serdes.String(), transactionSerde));
-        transactions = transactions.filter((key, value) -> value.cardId().equals(key));
+        transactions = transactions.filter((key, value) -> value.cardId().equals(key))
+                .peek((key, value) -> metrics.transactionProcessed());
         KStream<String, FraudAlert> alerts = new VelocityRule(properties.velocity(), clock).apply(builder, transactions)
                 .merge(new HighAmountRule(properties.highAmount(), clock).apply(builder, transactions))
                 .merge(new ImpossibleTravelRule(properties.impossibleTravel(), clock).apply(builder, transactions))
                 .merge(new CardTestingRule(properties.cardTesting(), clock).apply(builder, transactions));
+        alerts = alerts.peek((key, value) -> metrics.alertDetected(value));
         alerts.to(ALERTS_TOPIC, Produced.with(Serdes.String(), alertSerde));
         return alerts;
     }
