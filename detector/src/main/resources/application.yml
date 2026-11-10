@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: detector
+  main:
+    keep-alive: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    admin:
+      fail-fast: true
+    streams:
+      application-id: fraud-detector
+      state-dir: ${KAFKA_STREAMS_STATE_DIR:./.state/detector}
+      properties:
+        replication.factor: 1
+        processing.guarantee: at_least_once
+        deserialization.exception.handler: org.apache.kafka.streams.errors.LogAndContinueExceptionHandler
+        errors.dead.letter.queue.topic.name: transactions-dlt
+
+fraud:
+  rules:
+    velocity:
+      max-transactions: 5
+      window: 1m
+      grace: 30s
+
+    high-amount:
+      multiplier: 5
+      min-history: 5
+    impossible-travel:
+      max-speed-kmh: 900
+    card-testing:
+      max-amount: 5
+      min-transactions: 5
+      window: 2m
+      grace: 30s

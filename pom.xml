@@ -38,6 +38,7 @@
 
     <modules>
         <module>simulator</module>
+        <module>detector</module>
     </modules>
 
 </project>
